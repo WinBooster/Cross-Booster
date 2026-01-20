@@ -12,16 +12,22 @@ use image::{ImageError, ImageReader};
 use crate::utils::{get_icon, run_cmd_hidden};
 
 struct MyApp {
+    #[cfg(target_os = "windows")]
     high_performance_enabled: bool,
+    #[cfg(target_os = "windows")]
     performance_optimized: bool,
+    #[cfg(target_os = "windows")]
     initialized: bool,
 }
 
 impl Default for MyApp {
     fn default() -> Self {
         Self {
+            #[cfg(target_os = "windows")]
             high_performance_enabled: false,
+            #[cfg(target_os = "windows")]
             performance_optimized: false,
+            #[cfg(target_os = "windows")]
             initialized: false,
         }
     }
@@ -29,89 +35,91 @@ impl Default for MyApp {
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            if !self.initialized {
-                match crate::power::get_current_power_scheme_guid() {
-                    Ok(guid) => {
-                        self.high_performance_enabled =
-                            guid == "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c";
+        #[cfg(target_os = "windows")] {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                if !self.initialized {
+                    match crate::power::get_current_power_scheme_guid() {
+                        Ok(guid) => {
+                            self.high_performance_enabled =
+                                guid == "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c";
+                        }
+                        Err(_) => {}
                     }
-                    Err(_) => {}
-                }
-                match crate::registry::RegistryUtils::get_performance_visual_fx_setting() {
-                    Ok(value) => {
-                        self.performance_optimized = value == 2;
-                    }
-                    Err(_) => {
-                        self.performance_optimized = false;
-                    }
-                }
-                self.initialized = true;
-            }
-
-            let mut enabled = self.high_performance_enabled;
-            if ui
-                .checkbox(&mut enabled, "Use High Performance Power Scheme")
-                .changed()
-            {
-                self.high_performance_enabled = enabled;
-                if enabled {
-                    // Switch to high performance
-                    let guid = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c";
-                    match crate::power::create_scheme_if_not_exists(guid) {
-                        Ok(_) => {}
+                    match crate::registry::RegistryUtils::get_performance_visual_fx_setting() {
+                        Ok(value) => {
+                            self.performance_optimized = value == 2;
+                        }
                         Err(_) => {
-                            return;
+                            self.performance_optimized = false;
                         }
                     }
-                    match run_cmd_hidden(&format!("powercfg /setactive {}", guid)) {
-                        Ok(_) => {}
-                        Err(_) => {}
-                    }
-                } else {
-                    // Switch back to balanced
-                    let balanced_guid = "381b4222-f694-41f0-9685-ff5bb260df2e";
-                    match run_cmd_hidden(&format!("powercfg /setactive {}", balanced_guid)) {
-                        Ok(_) => {}
-                        Err(_) => {}
-                    }
+                    self.initialized = true;
                 }
-                // Clean up duplicates on every checkbox change
-                match crate::power::cleanup_duplicate_schemes() {
-                    Ok(_) => {}
-                    Err(_) => {} // Ignore errors for cleanup
-                }
-            }
 
-            let mut optimized = self.performance_optimized;
-            if ui
-                .checkbox(&mut optimized, "Optimize Performance Settings")
-                .changed()
-            {
-                self.performance_optimized = optimized;
-                if optimized {
-                    match crate::registry::RegistryUtils::set_performance_visual_fx_setting(2) {
-                        Ok(_) => {
-                            // Restart explorer to apply changes in background
-                            thread::spawn(|| {
-                                let _ = run_cmd_hidden("taskkill /f /im explorer.exe && start explorer.exe");
-                            });
+                let mut enabled = self.high_performance_enabled;
+                if ui
+                    .checkbox(&mut enabled, "Use High Performance Power Scheme")
+                    .changed()
+                {
+                    self.high_performance_enabled = enabled;
+                    if enabled {
+                        // Switch to high performance
+                        let guid = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c";
+                        match crate::power::create_scheme_if_not_exists(guid) {
+                            Ok(_) => {}
+                            Err(_) => {
+                                return;
+                            }
                         }
-                        Err(_) => {}
+                        match run_cmd_hidden(&format!("powercfg /setactive {}", guid)) {
+                            Ok(_) => {}
+                            Err(_) => {}
+                        }
+                    } else {
+                        // Switch back to balanced
+                        let balanced_guid = "381b4222-f694-41f0-9685-ff5bb260df2e";
+                        match run_cmd_hidden(&format!("powercfg /setactive {}", balanced_guid)) {
+                            Ok(_) => {}
+                            Err(_) => {}
+                        }
                     }
-                } else {
-                    match crate::registry::RegistryUtils::set_performance_visual_fx_setting(1) {
-                        Ok(_) => {
-                            // Restart explorer to apply changes in background
-                            thread::spawn(|| {
-                                let _ = run_cmd_hidden("taskkill /f /im explorer.exe && start explorer.exe");
-                            });
-                        }
-                        Err(_) => {}
+                    // Clean up duplicates on every checkbox change
+                    match crate::power::cleanup_duplicate_schemes() {
+                        Ok(_) => {}
+                        Err(_) => {} // Ignore errors for cleanup
                     }
                 }
-            }
-        });
+
+                let mut optimized = self.performance_optimized;
+                if ui
+                    .checkbox(&mut optimized, "Optimize Performance Settings")
+                    .changed()
+                {
+                    self.performance_optimized = optimized;
+                    if optimized {
+                        match crate::registry::RegistryUtils::set_performance_visual_fx_setting(2) {
+                            Ok(_) => {
+                                // Restart explorer to apply changes in background
+                                thread::spawn(|| {
+                                    let _ = run_cmd_hidden("taskkill /f /im explorer.exe && start explorer.exe");
+                                });
+                            }
+                            Err(_) => {}
+                        }
+                    } else {
+                        match crate::registry::RegistryUtils::set_performance_visual_fx_setting(1) {
+                            Ok(_) => {
+                                // Restart explorer to apply changes in background
+                                thread::spawn(|| {
+                                    let _ = run_cmd_hidden("taskkill /f /im explorer.exe && start explorer.exe");
+                                });
+                            }
+                            Err(_) => {}
+                        }
+                    }
+                }
+            });
+        }
     }
 }
 
