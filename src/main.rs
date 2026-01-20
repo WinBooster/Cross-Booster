@@ -2,12 +2,15 @@ mod power;
 mod registry;
 mod utils;
 
+rust_i18n::i18n!("locales");
+
 use std::sync::Arc;
 use std::thread;
 
 use eframe::egui;
 use eframe::egui::IconData;
 use image::{ImageError, ImageReader};
+use rust_i18n::t;
 
 use crate::utils::{get_icon, run_cmd_hidden};
 
@@ -58,7 +61,7 @@ impl eframe::App for MyApp {
 
                 let mut enabled = self.high_performance_enabled;
                 if ui
-                    .checkbox(&mut enabled, "Use High Performance Power Scheme")
+                    .checkbox(&mut enabled, t!("high_performance_checkbox"))
                     .changed()
                 {
                     self.high_performance_enabled = enabled;
@@ -92,7 +95,7 @@ impl eframe::App for MyApp {
 
                 let mut optimized = self.performance_optimized;
                 if ui
-                    .checkbox(&mut optimized, "Optimize Performance Settings")
+                    .checkbox(&mut optimized, t!("optimize_performance_checkbox"))
                     .changed()
                 {
                     self.performance_optimized = optimized;
@@ -139,6 +142,8 @@ fn load_icon_from_bytes(bytes: &[u8]) -> Result<Arc<IconData>, image::ImageError
 }
 
 fn main() -> eframe::Result<()> {
+    rust_i18n::set_locale(crate::utils::get_system_language());
+
     let icon_bytes = get_icon();
     let icon = load_icon_from_bytes(icon_bytes).expect("Failed to load icon");
 

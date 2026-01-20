@@ -6,6 +6,9 @@ use std::process::Command;
 use std::os::windows::process::CommandExt;
 
 #[cfg(target_os = "windows")]
+use windows_sys::Win32::Globalization::GetUserDefaultUILanguage;
+
+#[cfg(target_os = "windows")]
 pub fn run_cmd_hidden(command: &str) -> Result<(), Box<dyn std::error::Error>> {
     Command::new("cmd")
         .args(&["/C", command])
@@ -31,4 +34,22 @@ pub fn get_icon() -> &'static [u8; 3216] {
 
 pub fn get_version() -> &'static str {
     option_env!("APP_VERSION").unwrap_or("1.0.0")
+}
+
+#[cfg(target_os = "windows")]
+pub fn get_system_language() -> &'static str {
+    unsafe {
+        let lang_id = GetUserDefaultUILanguage();
+        match lang_id & 0x3FF { // Primary language ID
+            0x09 => "en", // English
+            0x19 => "ru", // Russian
+            // Add more languages as needed
+            _ => "en", // Default to English
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn get_system_language() -> &'static str {
+    "en" // Default for non-Windows
 }

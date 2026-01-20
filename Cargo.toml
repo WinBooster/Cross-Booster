@@ -8,6 +8,8 @@ egui = "0.33.3"
 eframe = "0.33.3"
 image = "0.25"
 encoding_rs = "0.8"
+rust-i18n = "3.0"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
+windows-sys = { version = "0.59", features = ["Win32_Globalization", "Win32_System_SystemServices"] }
